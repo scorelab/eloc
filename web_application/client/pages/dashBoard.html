@@ -1,0 +1,299 @@
+<div class="block-header">
+    <h2>DashBoard</h2>
+</div>
+<div class="row clearfix">
+  <div class="col-xs-12 col-sm-12 col-md-7 col-lg-7">
+      <div class="card">
+          <div class="body">
+            <div class="row clearfix">
+              <form id="locationForm">
+              <div class="col-sm-6">
+                <div class="form-group">
+                    <label for="ReoCode">Location</label>
+                    <select class="form-control"  data-live-search="true"  id="location" name="location">
+                    </select>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="form-group">
+                    <label for="ReoCode">Timestamp</label>
+                    <select class="form-control"  data-live-search="true"  id="timetamp" name="timetamp" disabled>
+                    </select>
+                </div>
+              </div>
+          </form>
+        </div>
+        <div class="row clearfix">
+          <div class="col-sm-8">
+            <div class="button-demo">
+                <button type="button" id="plotButton" class="btn btn-success waves-effect">Plot</button>
+                <!-- <button type="button" class="btn btn-warning waves-effect">Download</button> -->
+                <a href="../server/data/1499431180.wav"
+                class="btn btn-warning waves-effect" id = "downloadButton"
+                download="elephant_rumble.wav" >Download</a>
+            </div>
+          </div>
+
+          <div class="col-sm-4 font-bold h4">
+            <p class="font-bold col-blue" id ="angleText"> </p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+        <div class="body">
+
+          <div class="button-demo">
+              <button type="button" id="PlayButton" class="btn btn-success waves-effect">Play</button>
+              <button type="button" id="StopButton" class="btn btn-danger waves-effect">Stop</button>
+              <button type="button" id="pauseButton" class="btn btn-warning waves-effect">pause</button>
+          </div>
+            <!-- laod graph here -->
+
+            <!-- <audio id="audio" controls>
+                <source src="" id ="audioSource">
+              Your browser does not support the audio element.
+            </audio> -->
+
+            <div id="waveform"></div>
+        </div>
+    </div>
+  </div>
+
+  <div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
+      <div class="card">
+          <div class="body">
+            <!--map-->
+            <div id="googleMap" style="width:100%;height:750px;"></div>
+            <!-- end - -->
+          </div>
+      </div>
+  </div>
+
+</div>
+
+<div class="row clearfix">
+
+</div>
+
+<div class="row clearfix">
+  <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+
+  </div>
+</div>
+
+
+
+
+
+
+  <iframe id="my_iframe" style="display:none;"></iframe>
+
+
+
+
+
+<script>
+$.AdminBSB.input = {
+    activate: function () {
+        //On focus event
+        $('.form-control').focus(function () {
+            $(this).parent().addClass('focused');
+        });
+
+        //On focusout event
+        $('.form-control').focusout(function () {
+            var $this = $(this);
+            if ($this.parents('.form-group').hasClass('form-float')) {
+                if ($this.val() == '') { $this.parents('.form-line').removeClass('focused'); }
+            }
+            else {
+                $this.parents('.form-line').removeClass('focused');
+            }
+        });
+
+        //On label click
+        $('body').on('click', '.form-float .form-line .form-label', function () {
+            $(this).parent().find('input').focus();
+        });
+
+        //Not blank form
+        $('.form-control').each(function () {
+            if ($(this).val() !== '') {
+                $(this).parents('.form-line').addClass('focused');
+            }
+        });
+    }
+}
+
+$.AdminBSB.input.activate();
+</script>
+
+
+<script src="js/map.js"></script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7Q3up2ze7R4M0VnsJKG4YTiyRD3LdfJk&callback=initialize"
+type="text/javascript"></script>
+<script>
+
+
+var  validator1 = $("#locationForm").validate({
+    rules: {
+        location: {
+            required: true
+
+        },
+        timetamp:{
+          required:true
+        }
+    }
+});
+
+
+
+
+    $(document).ready(function() {
+      var location          = $('#location');
+      var timetamp          = $('#timetamp');
+      var inputForm         = $('#locationForm');
+      var validationPass    = false;
+      var currentClipPath   = '';
+      var angleText         = $('#angleText');
+      var waveform          = $('#waveform');
+
+
+      var wavesurfer = WaveSurfer.create({
+          container: '#waveform',
+          waveColor: '#2196F3',
+          progressColor: '#607D8B',
+
+          barWidth : 0.5,
+          normalize : true,
+          splitChannels: true
+
+      });
+
+      reset(); // disable buttons
+
+      $.getJSON( "../server/DBfunctions/JsonAPI.php",{functionName : "getLocationList"}, function( data ) {
+            location.selectListWithClickEvent({
+                helpText : 'Select Location',
+                dataArray : data
+            });
+            //location.selectpicker();     // call plugin
+
+      });
+
+      function updateLocationTimestamp(seleted_location){
+        timetamp.empty();
+        $.getJSON( "../server/DBfunctions/JsonAPI.php",{functionName : "getLocationTimestamps",location:seleted_location}, function( data ) {
+              timetamp.selectListWithTitle({
+                  helpText : 'Select Timestamp',
+                  dataArray : data
+              });
+              // timetamp.selectpicker();     // call plugin
+
+        });
+        timetamp.removeAttr('disabled')
+      }
+      // timetamp.selectpicker();
+
+      location.on( "change",function() {
+          var sel = document.getElementById('location');
+          var selected = sel.options[sel.selectedIndex];
+          var selectLocation = selected.getAttribute('value');
+          var latC = parseFloat(selected.getAttribute('data-lat'));
+          var lonC = parseFloat(selected.getAttribute('data-lon'));
+
+          reset();
+          var latLon = {lat: latC, lng: lonC,name :selectLocation };
+          // plot maker on the map
+          placeMarker(latLon);
+          // update timestap relevent to seleted location
+          updateLocationTimestamp(selectLocation);
+      });
+
+
+
+
+      timetamp.on( "change",function() {
+        //when timestamp select fetch relevelt data & updatedownload button
+        validationPass = inputForm.valid();
+        if(validationPass){
+          var sel1 = document.getElementById('location');
+          var selected1 = sel1.options[sel1.selectedIndex];
+          var selectedLocation = selected1.getAttribute('value');
+
+          var sel2 = document.getElementById('timetamp');
+          var selected2 = sel2.options[sel2.selectedIndex];
+          var selectedTimestamp = selected2.getAttribute('value');
+
+          $.getJSON( "../server/DBfunctions/JsonAPI.php",{functionName : "getAudio",location:selectedLocation,time_stamp:selectedTimestamp}, function( data ) {
+                console.log(data[0]);
+                var fileName = data[0].data_file;
+                currentClipPath = "../server/" + fileName;
+                angleText.text('Angle : ' + data[0].angle + '"');
+                var downloadButton = document.getElementById('downloadButton');
+                downloadButton.href = currentClipPath;
+                enableButtons();
+          });
+        }
+      });
+
+
+      $('#downloadButton').click(function(event) {
+          validationPass = inputForm.valid();
+          if(!validationPass){
+            event.preventDefault();
+          }
+      });
+
+      $('#plotButton').click(function() {
+        validationPass = inputForm.valid();
+        if(validationPass){
+          wavesurfer.load(currentClipPath);
+          enableControlButtons();
+        }
+      });
+
+
+      $('#pauseButton').click(function() {
+        wavesurfer.pause();
+      });
+
+
+      $('#StopButton').click(function() {
+        wavesurfer.stop();
+      });
+
+
+      $('#PlayButton').click(function() {
+        wavesurfer.play();
+      });
+
+      function reset(){
+        angleText.empty();
+        wavesurfer.empty();
+        $('#downloadButton').attr("disabled", true); // need to fix (click)
+        $('#plotButton').prop('disabled', true);
+        $('#pauseButton').prop('disabled', true);
+        $('#StopButton').prop('disabled', true);
+        $('#PlayButton').prop('disabled', true);
+
+      }
+
+      function enableButtons(){
+        $('#plotButton').prop('disabled', false);
+        $('#downloadButton').attr("disabled", false);
+      }
+
+      function enableControlButtons(){
+        $('#pauseButton').prop('disabled', false);
+        $('#StopButton').prop('disabled', false);
+        $('#PlayButton').prop('disabled', false);
+      }
+    })
+
+</script>

@@ -1,2 +1,0 @@
-# eloc
-Elephant Localization 
