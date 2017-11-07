@@ -1,0 +1,209 @@
+<div class="block-header">
+    <h2>About</h2>
+</div>
+
+
+
+  <div class="row clearfix">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <div class="card">
+              <div class="body">
+                  About project
+              </div>
+          </div>
+      </div>
+  </div>
+
+<script>
+
+
+// A1607/94
+
+// var validator =  $("#cardRegisterForm").validate({
+//     rules: {
+//
+//         CardNumber: {
+//              //turn off auto validate whilst typing
+//             required: true,
+//             remote: {
+//                 url: '../../../application/controllers/DBfunctions/remoteApi.php',
+//                 type: 'POST',
+//                 data:{
+//                     functionName:'cardIdValidationWithOutRef'
+//                 }
+//             }
+//         }
+//     }
+//
+// });
+    $(document).ready(function() {
+
+        var branch = $('#Branch');
+
+        var validationPass = false;
+
+
+        // // this is for enter press , this call on click event
+        // cardRegisterForm.keypress(function (e) {
+        //     var key = e.which;
+        //     if(key == 13)  // the enter key code
+        //     {
+        //         e.preventDefault();
+        //         e.stopPropagation();
+        //         $('#ViewButton').click();
+        //         return false;
+        //     }
+        // });
+
+        // $('#ViewButton').click(function() {
+        //           cardId = cardNumber.val();
+        //           validationPass = cardRegisterForm.valid();
+        //           if(validationPass){
+        //             cardCreator(cardId);
+        //           }else{
+        //             // alert("Invalid Card Id");
+        //             showBasicMessage("Invalid Card Id");
+        //           }
+        //
+        // });
+
+
+    });
+
+
+</script>
+
+
+<script>
+$.AdminBSB.input = {
+    activate: function () {
+        //On focus event
+        $('.form-control').focus(function () {
+            $(this).parent().addClass('focused');
+        });
+
+        //On focusout event
+        $('.form-control').focusout(function () {
+            var $this = $(this);
+            if ($this.parents('.form-group').hasClass('form-float')) {
+                if ($this.val() == '') { $this.parents('.form-line').removeClass('focused'); }
+            }
+            else {
+                $this.parents('.form-line').removeClass('focused');
+            }
+        });
+
+        //On label click
+        $('body').on('click', '.form-float .form-line .form-label', function () {
+            $(this).parent().find('input').focus();
+        });
+
+        //Not blank form
+        $('.form-control').each(function () {
+            if ($(this).val() !== '') {
+                $(this).parents('.form-line').addClass('focused');
+            }
+        });
+    }
+}
+
+$.AdminBSB.input.activate();
+</script>
+
+
+<script>
+
+
+var  validator1 = $("#cardRegisterForm").validate({
+    rules: {
+        location: {
+            required: true
+
+        },
+        timetamp:{
+          required:true
+        }
+    }
+});
+
+
+
+
+    $(document).ready(function() {
+
+      var location     = $('#location');
+      var timetamp     = $('#timetamp');
+
+      var inputForm = $('#cardRegisterForm');
+
+
+
+
+
+
+
+      $.getJSON( "../../../application/controllers/DBfunctions/JsonAPI.php",{functionName : "getBranchProductList",branchID :branchId }, function( data ) {
+            location.selectListWithClickEvent({
+                helpText : 'Select Location',
+                dataArray : data
+            });
+            //location.selectpicker();     // call plugin
+
+      });
+
+      function updateLocationSelectList(seleted_location){
+
+        timetamp.empty();
+        $.getJSON( "../../../application/controllers/DBfunctions/JsonAPI.php",{functionName : "getBranchRefList",branchID:branchId}, function( data ) {
+              timetamp.selectListWithTitle({
+                  helpText : 'Select Timestamp',
+                  dataArray : data
+              });
+              // timetamp.selectpicker();     // call plugin
+
+        });
+
+        timetamp.removeAttr('disabled')
+      }
+
+      // timetamp.selectpicker();
+
+
+
+      location.on( "change",function() {
+          var sel = document.getElementById('location');
+          var selected = sel.options[sel.selectedIndex];
+
+          // have to set same to the value filed in the data base
+          var selectLocation = selected.getAttribute('value');
+          console.log(sel);
+          console.log(selectLocation);
+
+          updateLocationSelectList(selectLocation);
+
+      });
+
+
+      $('#plotButton').click(function() {
+        validationPass = inputForm.valid();
+        // validationPass = true;
+        if(validationPass){
+          var formData = inputForm.serialize();
+          console.log(formData);
+        }
+
+      });
+
+
+
+
+
+    })
+
+</script>
+
+<script>
+function showBasicMessage(msg) {
+    swal(msg);
+}
+</script>
